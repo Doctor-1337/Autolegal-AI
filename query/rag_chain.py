@@ -9,7 +9,7 @@ from langchain_community.llms import Ollama
 
 # Load vector DB
 def load_vectorstore(persist_directory="../ingest/db"):
-    embedding = OllamaEmbeddings()
+    embedding = OllamaEmbeddings(model="llama3.2")
     return Chroma(persist_directory=persist_directory, embedding_function=embedding)
 
 # Format retrieved docs
@@ -17,7 +17,7 @@ def format_docs(docs):
     return "\n\n".join(d.page_content for d in docs)
 
 # Build RAG chain
-def build_rag_chain(vectorstore, model_name="mistral"):
+def build_rag_chain(vectorstore, model_name="llama3.2"):
     llm = Ollama(model=model_name)
     prompt = hub.pull("rlm/rag-prompt")
     
