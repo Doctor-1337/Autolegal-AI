@@ -7,3 +7,4 @@ python-dotenv
 pypdf
 langchain-community
 langchain-ollama
+langchain-chroma
