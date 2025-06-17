@@ -8,3 +8,4 @@ pypdf
 langchain-community
 langchain-ollama
 langchain-chroma
+streamlit
