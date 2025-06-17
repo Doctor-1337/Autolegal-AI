@@ -9,3 +9,5 @@ langchain-community
 langchain-ollama
 langchain-chroma
 streamlit
+beautifulsoup4
+datasets

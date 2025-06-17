@@ -7,72 +7,49 @@ from langchain import hub
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from tempfile import NamedTemporaryFile
-from langchain_community.llms import Ollama
 import os
 
+import sys
+# Add project root (autolegal-ai/) to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from query.tool import PDFIngestTool
 
-# UI: Title
-st.title("📄 Chat with your PDF - Local RAG with Ollama")
+import streamlit as st
+from tempfile import NamedTemporaryFile
+from query.tool import store_pdf_text_for_agent  # You need to create this helper
 
-# UI: Upload file
+from agents.agent import create_legal_agent
+
+
+
+MODEL_NAME = "llama3.2"
+
+st.title("📚 Legal Assistant - Powered by Local Agent")
+
 uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 
-# Model configuration
-MODEL_NAME = "llama3.2"  
-
-# Helper: Format docs for prompt
-def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
-
-persist_directory = "../ingest/db"
-
-def load_preloaded_vectorstore():
-    if os.path.exists(persist_directory):
-        embeddings = OllamaEmbeddings(model=MODEL_NAME)
-        return Chroma(persist_directory=persist_directory, embedding_function=embeddings)
-    return None
+agent = create_legal_agent(model_name=MODEL_NAME)
 
 if uploaded_file:
-    st.info("📑 Loading and processing the PDF...")
+    st.info("📑 Processing uploaded PDF...")
     with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_file.read())
         tmp_pdf_path = tmp_file.name
 
-    loader = PyPDFLoader(tmp_pdf_path)
-    documents = loader.load()
+    # You can implement a helper that stores the PDF content in a global state or vector DB
+    # so that PDFIngestTool can access it later
+    store_pdf_text_for_agent(tmp_pdf_path)
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
-    chunks = splitter.split_documents(documents)
+    st.success("✅ PDF content ingested successfully.")
 
-    embeddings = OllamaEmbeddings(model=MODEL_NAME)
-    vectordb = Chroma.from_documents(documents=chunks, embedding=embeddings)
+elif not os.path.exists("../ingest/db"):
+    st.warning("⚠️ Please upload a PDF to begin.")
+    st.stop()
 
-else:
-    vectordb = load_preloaded_vectorstore()
-    if vectordb:
-        st.info("📂 Using preloaded PDF vectorstore.")
-    else:
-        st.warning("⚠️ Please upload a PDF file to begin.")
-        st.stop()
+query = st.text_input("Ask a legal question (based on PDF or case law):")
 
-# Setup RAG Chain (moved outside the condition)
-retriever = vectordb.as_retriever()
-prompt = hub.pull("rlm/rag-prompt")
-llm = Ollama(model=MODEL_NAME)
-llm_chain = (
-    {
-        "context": retriever | format_docs,
-        "question": RunnablePassthrough()
-    }
-    | prompt
-    | llm
-    | StrOutputParser()
-)
-
-# UI: Question input (shown always if vectordb is ready)
-query = st.text_input("Ask something about the document:")
 if query:
     with st.spinner("🧠 Thinking..."):
-        response = llm_chain.invoke(query)
+        response = agent.invoke(query)
     st.markdown("**Answer:**")
     st.write(response)
