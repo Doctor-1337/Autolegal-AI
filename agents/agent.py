@@ -6,7 +6,7 @@ from query.tool import PDFIngestTool
 from tools.live_legal_data.tool import LegalDatasetTool
 
 def create_legal_agent(model_name="llama3.2"):
-    tools = [PDFIngestTool, LegalDatasetTool]
+    tools = [PDFIngestTool(), LegalDatasetTool]
     llm = OllamaLLM(model=model_name)
 
     agent = initialize_agent(
@@ -14,5 +14,7 @@ def create_legal_agent(model_name="llama3.2"):
         llm=llm,
         agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
+        handle_parsing_errors=True,
+        max_iterations=3
     )
     return agent
