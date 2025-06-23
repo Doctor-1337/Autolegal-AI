@@ -48,6 +48,11 @@ elif not os.path.exists("../ingest/db"):
 
 query = st.text_input("Ask a legal question (based on PDF or case law):")
 
+if "agent" not in st.session_state:
+    st.session_state.agent = create_legal_agent(model_name=MODEL_NAME)
+agent = st.session_state.agent
+if st.button("Show Memory"):
+    st.write(st.session_state.agent.memory.buffer)
 if query:
     with st.spinner("🧠 Thinking..."):
         response = agent.invoke(query)
